@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hardware Hackathon Store</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .item-card { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 8px; }
+        .sold { background-color: #fdd; color: #900; }
+    </style>
+</head>
+<body>
+    <h1>Hardware Store</h1>
+    <button id="connectBtn">Connect Wallet</button>
+    <p id="walletAddress"></p>
+    <form id="additem-form">
+    <input type="text" name="Item name" id="item-name" placeholder="Item name" required />
+    <input type="number" name="Item price in eth" id="item-price" placeholder="Item price" required />
+    <button type="submit">Add item to listing</button>
+    </form>
+
+    <div id="inventory">
+        </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
