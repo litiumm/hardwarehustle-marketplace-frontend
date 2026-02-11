@@ -1,9 +1,60 @@
 // 1. Configuration
 const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const abi = [    {
+const abi = [
+    {
       "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "item",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        }
+      ],
+      "name": "AddItem",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bool",
+          "name": "is_sold",
+          "type": "bool"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        }
+      ],
+      "name": "BuyItem",
+      "type": "event"
     },
     {
       "inputs": [
@@ -131,14 +182,18 @@ async function connect() {
             // Initialize Contract
             contract = new ethers.Contract(contractAddress, abi, signer);
 
+            const buyItemEvent = contract.on("BuyItem", loadInventory());
+            const addItemEvent = contract.on("AddItem", loadInventory());
+
             loadInventory();
-        } catch (err) {
-            console.error("User denied connection", err);
+
+            } catch (err) {
+                console.error("User denied connection", err);
+            }
+        } else {
+            alert("Please install MetaMask!");
         }
-    } else {
-        alert("Please install MetaMask!");
     }
-}
 
 // 3. Load and Display Inventory
 async function loadInventory() {
@@ -214,3 +269,4 @@ inventoryForm.addEventListener('submit', async (event) => {
     event.preventDefault(); // Prevents the page from reloading
     await add_item_to_inventory(); // Calls your existing logic
 });
+
