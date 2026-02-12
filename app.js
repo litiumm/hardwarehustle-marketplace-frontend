@@ -16,13 +16,13 @@ const abi = [
           "type": "address"
         },
         {
-          "indexed": true,
+          "indexed": false,
           "internalType": "string",
-          "name": "item",
+          "name": "name",
           "type": "string"
         },
         {
-          "indexed": true,
+          "indexed": false,
           "internalType": "uint256",
           "name": "price",
           "type": "uint256"
@@ -42,12 +42,12 @@ const abi = [
         },
         {
           "indexed": true,
-          "internalType": "bool",
-          "name": "is_sold",
-          "type": "bool"
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
         },
         {
-          "indexed": true,
+          "indexed": false,
           "internalType": "uint256",
           "name": "price",
           "type": "uint256"
@@ -67,6 +67,11 @@ const abi = [
           "internalType": "uint256",
           "name": "_priceInWei",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_count",
+          "type": "uint256"
         }
       ],
       "name": "addItem",
@@ -85,6 +90,30 @@ const abi = [
       "name": "buyItem",
       "outputs": [],
       "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getBuyers",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -113,13 +142,13 @@ const abi = [
           "type": "uint256"
         },
         {
-          "internalType": "bool",
-          "name": "isSold",
-          "type": "bool"
+          "internalType": "uint256",
+          "name": "count",
+          "type": "uint256"
         },
         {
-          "internalType": "address",
-          "name": "buyer",
+          "internalType": "address payable",
+          "name": "seller",
           "type": "address"
         }
       ],
@@ -153,6 +182,30 @@ const abi = [
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "userPurchases",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "withdraw",
       "outputs": [],
@@ -163,12 +216,12 @@ const abi = [
 
 let signer;
 let contract;
+let organizerAddress;
 
 const connectBtn = document.getElementById('connectBtn');
-const additem = document.getElementById('additem');
 const inventoryDiv = document.getElementById('inventory');
+const adminPanel = document.getElementById('admin-panel');
 
-// 2. Connect Wallet Logic
 async function connect() {
     if (window.ethereum) {
         try {
@@ -177,96 +230,113 @@ async function connect() {
             const address = await signer.getAddress();
 
             document.getElementById('walletAddress').innerText = `Connected: ${address}`;
-            connectBtn.innerText = "Connected";
+            connectBtn.innerText = "Wallet Connected";
 
-            // Initialize Contract
             contract = new ethers.Contract(contractAddress, abi, signer);
 
-            const buyItemEvent = contract.on("BuyItem", loadInventory());
-            const addItemEvent = contract.on("AddItem", loadInventory());
+            // Fetch Organizer Address for Admin UI
+            organizerAddress = await contract.organizer();
+            if (address.toLowerCase() === organizerAddress.toLowerCase()) {
+                adminPanel.style.display = 'block';
+            } else {
+                adminPanel.style.display = 'none';
+            }
+
+            // Correctly set up event listeners
+            contract.removeAllListeners(); // Prevent duplicate listeners
+            contract.on("BuyItem", () => {
+                console.log("Blockchain event: Item Bought");
+                loadInventory();
+            });
+            contract.on("AddItem", () => {
+                console.log("Blockchain event: Item Added");
+                loadInventory();
+            });
 
             loadInventory();
 
-            } catch (err) {
-                console.error("User denied connection", err);
-            }
-        } else {
-            alert("Please install MetaMask!");
+        } catch (err) {
+            console.error("Connection error", err);
         }
+    } else {
+        alert("Please install MetaMask!");
     }
+}
 
-// 3. Load and Display Inventory
 async function loadInventory() {
-    inventoryDiv.innerHTML = "Loading items...";
-    const count = await contract.nextItemId();
-    inventoryDiv.innerHTML = ""; // Clear loader
-    console.log("showing inventory...");
+    inventoryDiv.innerHTML = "<p>Updating inventory...</p>";
+    try {
+        const count = await contract.nextItemId();
+        inventoryDiv.innerHTML = "";
 
-    for (let i = 0; i < count; i++) {
-        const item = await contract.inventory(i);
-        displayItem(item);
+        for (let i = 0; i < count; i++) {
+            const item = await contract.inventory(i);
+            displayItem(item);
+        }
+    } catch (err) {
+        console.error("Failed to load inventory:", err);
     }
 }
 
 async function add_item_to_inventory() {
-    if (!contract){
-        console.error("Connect to wallet first.");
-        return;
-    }
-    const item_name = document.getElementById('item-name').value;
-    const item_price = document.getElementById('item-price').value;
+    if (!contract) return;
 
-    if (!item_name || !item_price) {
-        console.error("Name and Price are required!");
-        return;
-    }
+    const name = document.getElementById('item-name').value;
+    const price = document.getElementById('item-price').value;
+    const quantity = document.getElementById('item-quantity').value;
+
     try {
-        const price_in_Wei = ethers.parseEther(item_price);
-        const tx = await contract.addItem(item_name, price_in_Wei);
+        const priceInWei = ethers.parseEther(price);
+        const tx = await contract.addItem(name, priceInWei, quantity);
         await tx.wait();
-        await loadInventory();
+        alert("Item added successfully!");
     } catch (err) {
-        console.error("MetaMask Trigger Error:", err);
+        console.error("Add item failed:", err);
     }
 }
 
 function displayItem(item) {
     const card = document.createElement('div');
-    card.className = `item-card ${item.isSold ? 'sold' : ''}`;
+    const isOutOfStock = Number(item.count) === 0;
+    card.className = `item-card ${isOutOfStock ? 'sold' : ''}`;
 
-    // Convert price from Wei to ETH for readability
     const priceInEth = ethers.formatEther(item.price);
 
     card.innerHTML = `
         <h3>${item.name}</h3>
         <p>Price: ${priceInEth} ETH</p>
-        <p>Status: ${item.isSold ? 'SOLD' : 'Available'}</p>
-        ${!item.isSold ? `<button onclick="buy(${item.id.toString()})">Buy Now</button>` : ''}
+        <p>Stock: ${item.count.toString()}</p>
+        <p>Status: ${isOutOfStock ? 'OUT OF STOCK' : 'Available'}</p>
+        ${!isOutOfStock ? `<button onclick="buy(${item.id.toString()})">Buy Now</button>` : ''}
     `;
     inventoryDiv.appendChild(card);
 }
 
-// 4. Purchase Logic
 window.buy = async (id) => {
     try {
         const item = await contract.inventory(id);
         const tx = await contract.buyItem(id, { value: item.price });
-
-        console.log("Transaction sent...", tx.hash);
-        await tx.wait(); // Wait for block confirmation
-
-        alert("Success! Hardware claimed.");
-        loadInventory(); // Refresh UI
+        console.log("Purchase pending...", tx.hash);
+        await tx.wait();
+        alert("Purchase confirmed!");
     } catch (err) {
         console.error("Purchase failed", err);
     }
 };
 
+window.withdrawFunds = async () => {
+    try {
+        const tx = await contract.withdraw();
+        await tx.wait();
+        alert("Funds withdrawn to organizer wallet.");
+    } catch (err) {
+        console.error("Withdrawal failed", err);
+    }
+};
+
 connectBtn.onclick = connect;
-const inventoryForm = document.getElementById('additem-form');
 
-inventoryForm.addEventListener('submit', async (event) => {
-    event.preventDefault(); // Prevents the page from reloading
-    await add_item_to_inventory(); // Calls your existing logic
+document.getElementById('additem-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await add_item_to_inventory();
 });
-

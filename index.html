@@ -2,27 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hardware Hackathon Store</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .item-card { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 8px; }
-        .sold { background-color: #fdd; color: #900; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background-color: #f4f7f6; color: #333; }
+        h1 { color: #2c3e50; }
+        .container { max-width: 800px; margin: auto; }
+        #admin-panel { 
+            display: none; 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            margin-bottom: 30px;
+            border-top: 4px solid #e74c3c;
+        }
+        .item-card { 
+            background: white; 
+            border: 1px solid #eee; 
+            padding: 20px; 
+            margin: 15px 0; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .item-card:hover { transform: translateY(-2px); }
+        .sold { opacity: 0.6; background-color: #f8f9fa; border-left: 5px solid #ccc; }
+        button { 
+            background: #3498db; color: white; border: none; padding: 10px 20px; 
+            border-radius: 6px; cursor: pointer; font-weight: bold;
+        }
+        button:hover { background: #2980b9; }
+        input { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 6px; }
+        #withdraw-btn { background: #27ae60; margin-top: 10px; }
+        #withdraw-btn:hover { background: #219150; }
     </style>
 </head>
 <body>
-    <h1>Hardware Store</h1>
+    <div class="container">
+        <h1>Hardware Store</h1>
 
-    <button id="connectBtn">Connect Wallet</button>
-    <p id="walletAddress"></p>
+        <button id="connectBtn">Connect Wallet</button>
+        <p id="walletAddress" style="font-size: 0.9em; color: #666;"></p>
 
-    <form id="additem-form">
-        <input type="text" name="Item name" id="item-name" placeholder="Item name" required />
-        <input type="number" name="Item price in eth" id="item-price" placeholder="Item price" required />
-        <button type="submit">Add item to listing</button>
-    </form>
-
-    <div id="inventory">
+        <div id="admin-panel">
+            <h3>Organizer Dashboard</h3>
+            <form id="additem-form">
+                <input type="text" id="item-name" placeholder="Item name" required />
+                <input type="number" step="0.0001" id="item-price" placeholder="Price in ETH" required />
+                <input type="number" id="item-quantity" placeholder="Initial Stock" required />
+                <button type="submit">Add to Inventory</button>
+            </form>
+            <button id="withdraw-btn" onclick="withdrawFunds()">Withdraw Contract Balance</button>
         </div>
+
+        <hr>
+        <h2>Available Hardware</h2>
+        <div id="inventory">
+            <p>Please connect your wallet to view inventory.</p>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="app.js"></script>
